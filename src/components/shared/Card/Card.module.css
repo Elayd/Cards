@@ -1,0 +1,18 @@
+.card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 300px;
+    height: 300px;
+    border-radius: 10px;
+    background-color: azure;
+    border: 2px solid black;
+}
+.input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: inherit;
+    text-align: center;
+    width: 100%;
+}

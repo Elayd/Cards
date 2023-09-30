@@ -1,0 +1,9 @@
+.creating-card-mode {
+    cursor: crosshair;
+    background-color: silver;
+    opacity: 0.3;
+}
+
+.header {
+    background-color: cadetblue;
+}
