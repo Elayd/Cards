@@ -1,7 +1,8 @@
 import styles from './Card.module.css';
 import {useState, MouseEvent, ChangeEvent, useRef} from 'react';
 
-interface CardProps {
+export interface CardProps {
+    id: string;
     x: number;
     y: number;
 }
@@ -18,27 +19,34 @@ const Card = (props: CardProps) => {
 
 
     const [position, setPosition] = useState({x: x, y: y });
-    const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-    const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-        setIsDragging(true);
+    const handleMouseDown = (event: MouseEvent) => {
+        const offsetX = event.clientX - position.x;
+        const offsetY = event.clientY - position.y;
+
         setDragOffset({
-            x: event.clientX - position.x,
-            y: event.clientY - position.y,
+            x: offsetX,
+            y: offsetY,
         });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
     };
 
-    const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
-        if (isDragging) {
+    const handleMouseMove = (event: MouseEvent) => {
             const newX = event.clientX - dragOffset.x;
             const newY = event.clientY - dragOffset.y;
             setPosition({ x: newX, y: newY });
-        }
     };
 
     const handleMouseUp = () => {
-        setIsDragging(false);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
     };
 
     const [canEdit, setCanEdit] = useState(true);
@@ -59,8 +67,6 @@ const Card = (props: CardProps) => {
         <div
             className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
             onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
             onDoubleClick={handleChangeEdit}
             style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px)` }}
         >

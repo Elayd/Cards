@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import './App.css';
 import Button from "./components/shared/Button/Button.tsx";
-import Card from "./components/shared/Card/Card.tsx";
+import Card, {CardProps} from "./components/shared/Card/Card.tsx";
 import { v4 as uuidv4 } from 'uuid';
 const App = () => {
     const [creatingCard, setCreatingCard] = useState(false);
-    const [cards, setCards] = useState<JSX.Element[]>([]);
-
+    const [cards, setCards] = useState<Record<string, CardProps>>({})
     const handleButtonClick = () => {
         setCreatingCard(!creatingCard);
     };
 
-
     const createCard = (x: number, y: number) => {
-        const newCard = <Card key={uuidv4()} x={x} y={y} />;
-        setCards([...cards, newCard]);
+        const cardId = uuidv4();
+        const newCardData: CardProps = { id: cardId, x, y };
+        setCards({ ...cards, [cardId]: newCardData });
         setCreatingCard(false);
     };
 
@@ -25,9 +24,7 @@ const App = () => {
     };
 
 
-
     const createCardMode = creatingCard ? 'creating-card-mode' : '';
-
 
     return (
         <>
@@ -37,7 +34,9 @@ const App = () => {
             </Button>
             </div>
             <div onClick={handlePageClick} style={{ height: '100vh' }} className={createCardMode}>
-                {cards}
+                {Object.values(cards).map((cardData) => (
+                    <Card key={cardData.id} id={cardData.id} x={cardData.x} y={cardData.y} />
+                ))}
             </div>
         </>
     );
