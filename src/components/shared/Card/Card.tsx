@@ -1,5 +1,5 @@
 import styles from './Card.module.css';
-import {useState, MouseEvent, ChangeEvent} from 'react';
+import {useState, MouseEvent, ChangeEvent, useRef} from 'react';
 
 interface CardProps {
     x: number;
@@ -11,7 +11,7 @@ const Card = (props: CardProps) => {
     const {x, y} = props
 
     const [text, setText] = useState<string>('Text')
-
+    const inputRef = useRef<HTMLInputElement>(null)
     const handleChangeText = (event: ChangeEvent<HTMLInputElement>) => {
         setText(event.target.value);
     };
@@ -44,27 +44,32 @@ const Card = (props: CardProps) => {
     const [canEdit, setCanEdit] = useState(true);
 
     const handleChangeEdit = () => {
+
+        inputRef.current?.focus()
         setCanEdit(false);
     };
 
     const handleBlur = () => {
+
         setCanEdit(true);
     };
 
+
     return (
         <div
-            className={styles.card}
+            className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            style={{ position: 'absolute', left: position.x, top: position.y }}
+            onDoubleClick={handleChangeEdit}
+            style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px)` }}
         >
             <input
                 type="text"
+                ref={inputRef}
                 value={text}
                 onChange={handleChangeText}
                 readOnly={canEdit}
-                onDoubleClick={handleChangeEdit}
                 onBlur={handleBlur}
                 className={styles.input}
             />
