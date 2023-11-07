@@ -8,6 +8,17 @@
     background-color: azure;
     border: 2px solid black;
 }
+.canEdit {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 300px;
+    height: 300px;
+    border-radius: 10px;
+    background-color: azure;
+    border: 2px solid black;
+    cursor: text;
+}
 .input {
     border: none;
     background: none;
@@ -15,4 +26,8 @@
     font-size: inherit;
     text-align: center;
     width: 100%;
+    box-shadow: 0 0 0 rgb(255, 255, 255);
+}
+input::selection {
+    background-color: transparent;
 }
