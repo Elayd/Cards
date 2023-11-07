@@ -2,6 +2,7 @@
     cursor: crosshair;
     background-color: silver;
     opacity: 0.3;
+    z-index: 1
 }
 
 .header {
