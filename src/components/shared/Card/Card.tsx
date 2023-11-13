@@ -6,16 +6,17 @@ export interface CardProps {
   x: number;
   y: number;
   scale: number;
+  text: string;
 }
 
 const Card = (props: CardProps) => {
-  const { x, y, scale } = props;
-  const [text, setText] = useState<string>('Text');
+  const { x, y, scale, text } = props;
+  const [cardText, setCardText] = useState<string>(text);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChangeText = (event: ChangeEvent<HTMLInputElement>) => {
-    setText(event.target.value);
+    setCardText(event.target.value);
   };
 
   const [position, setPosition] = useState({ x: x, y: y });
@@ -23,6 +24,7 @@ const Card = (props: CardProps) => {
   const [drag, setDrag] = useState(false);
 
   const handleMouseDown: MouseEventHandler<HTMLDivElement> = (event) => {
+    event.preventDefault();
     setDrag(true);
     const offsetX = event.clientX - position.x;
     const offsetY = event.clientY - position.y;
@@ -35,6 +37,7 @@ const Card = (props: CardProps) => {
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
+      event.preventDefault();
       if (drag) {
         const newX = event.clientX - dragOffset.x;
         const newY = event.clientY - dragOffset.y;
@@ -52,19 +55,24 @@ const Card = (props: CardProps) => {
 
   // todo : fix ts, and fixed propagation
   useEffect(() => {
+    window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
     return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [handleMouseMove, onMouseUp]);
+  }, [handleMouseMove, onMouseUp, drag, handleMouseDown]);
 
   const [canEdit, setCanEdit] = useState(true);
 
   const handleChangeEdit = () => {
     inputRef.current?.focus();
+    if (inputRef.current) {
+      inputRef.current.setSelectionRange(cardText.length, cardText.length);
+    }
     setCanEdit(false);
   };
 
@@ -75,14 +83,14 @@ const Card = (props: CardProps) => {
   return (
     <div
       className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
-      onMouseDown={handleMouseDown}
+      // onMouseDown={handleMouseDown}
       onDoubleClick={handleChangeEdit}
       style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px) scale(${scale})` }}
     >
       <input
         type="text"
         ref={inputRef}
-        value={text}
+        value={cardText}
         onChange={handleChangeText}
         readOnly={canEdit}
         onBlur={handleBlur}

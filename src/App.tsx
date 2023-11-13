@@ -13,11 +13,15 @@ const App = () => {
     setCreatingCard(!creatingCard);
   };
   const handleZoomIn = () => {
-    setScale(scale * 1.01);
+    if (Object.keys(cards).length > 0) {
+      setScale(scale * 1.01);
+    }
   };
 
   const handleZoomOut = () => {
-    setScale(scale * 0.99);
+    if (Object.keys(cards).length > 0) {
+      setScale(scale * 0.99);
+    }
   };
 
   const handleCanvasDrag = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -28,16 +32,18 @@ const App = () => {
     }
   };
 
-  const createCard = (x: number, y: number) => {
+  const createCard = (x: number, y: number, text: string) => {
     const cardId = uuidv4();
-    const newCardData: CardProps = { id: cardId, x, y, scale: 1 };
-    setCards({ ...cards, [cardId]: newCardData });
+    setCards((prevCards) => {
+      const newCardData: CardProps = { id: cardId, x, y, scale: 1, text };
+      return { ...prevCards, [cardId]: newCardData };
+    });
     setCreatingCard(false);
   };
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (creatingCard) {
-      createCard(event.clientX, event.clientY);
+      createCard(event.clientX, event.clientY, 'Text');
     }
   };
 
@@ -68,7 +74,7 @@ const App = () => {
         className={createCardMode}
       >
         {Object.values(cards).map((cardData) => (
-          <Card scale={scale} key={cardData.id} id={cardData.id} x={cardData.x} y={cardData.y} />
+          <Card text={cardData.text} scale={scale} key={cardData.id} id={cardData.id} x={cardData.x} y={cardData.y} />
         ))}
       </div>
     </>
