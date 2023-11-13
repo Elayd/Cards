@@ -8,19 +8,15 @@ const App = () => {
   const [cards, setCards] = useState<Record<string, CardProps>>({});
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
+  const ZOOM_SENSITIVITY = 500;
 
   const handleButtonClick = () => {
     setCreatingCard(!creatingCard);
   };
-  const handleZoomIn = () => {
+  const handleZoom = (event: React.WheelEvent<HTMLDivElement>) => {
+    const zoomFactor = 1 - event.deltaY / ZOOM_SENSITIVITY;
     if (Object.keys(cards).length > 0) {
-      setScale(scale * 1.01);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (Object.keys(cards).length > 0) {
-      setScale(scale * 0.99);
+      setScale(scale * zoomFactor);
     }
   };
 
@@ -56,13 +52,7 @@ const App = () => {
       </Button>
       <div
         onMouseMove={handleCanvasDrag}
-        onWheel={(e) => {
-          if (e.deltaY > 0) {
-            handleZoomOut();
-          } else {
-            handleZoomIn();
-          }
-        }}
+        onWheel={handleZoom}
         onClick={handlePageClick}
         style={{
           position: 'absolute',
