@@ -13,7 +13,7 @@ const Button = (props: ButtonProps) => {
   const { handleClick, width, height, children, disabled, handleSubmit, type } = props;
   return (
     <button
-      style={{ position: 'absolute', width: width, height: height, zIndex: 2 }}
+      style={{ position: 'absolute', width: width, height: height, zIndex: 4 }}
       className={styles.button}
       type={type}
       onClick={handleClick}

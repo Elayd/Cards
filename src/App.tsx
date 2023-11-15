@@ -21,6 +21,7 @@ const App = () => {
   };
 
   const handleCanvasDrag = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    console.log(event.type);
     if (event.buttons === 1) {
       const newX = canvasPosition.x + event.movementX;
       const newY = canvasPosition.y + event.movementY;
@@ -44,28 +45,37 @@ const App = () => {
   };
 
   const createCardMode = creatingCard ? 'creating-card-mode' : '';
-  // todo: canvas moving from div
   return (
     <>
       <Button width={200} height={100} handleClick={handleButtonClick}>
         + Create the card
       </Button>
       <div
-        onMouseMove={handleCanvasDrag}
-        onWheel={handleZoom}
+        className={createCardMode}
         onClick={handlePageClick}
         style={{
           position: 'absolute',
           height: '100%',
-          width: '100%',
-          background: 'red',
-          transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px)`
+          width: '100%'
         }}
-        className={createCardMode}
       >
-        {Object.values(cards).map((cardData) => (
-          <Card text={cardData.text} scale={scale} key={cardData.id} id={cardData.id} x={cardData.x} y={cardData.y} />
-        ))}
+        <div
+          onMouseMove={handleCanvasDrag}
+          onWheel={handleZoom}
+          style={{
+            position: 'absolute',
+            height: '100%',
+            width: '100%',
+            background: 'red',
+            opacity: '0.4',
+            transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px)`
+          }}
+        />
+        <div style={{ width: '100%', height: '100%', position: 'absolute' }}>
+          {Object.values(cards).map((cardData) => (
+            <Card text={cardData.text} scale={scale} key={cardData.id} id={cardData.id} x={cardData.x} y={cardData.y} />
+          ))}
+        </div>
       </div>
     </>
   );

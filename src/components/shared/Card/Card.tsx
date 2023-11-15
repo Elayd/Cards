@@ -23,17 +23,20 @@ const Card = (props: CardProps) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [drag, setDrag] = useState(false);
 
-  const handleMouseDown: MouseEventHandler<HTMLDivElement> = (event) => {
-    event.preventDefault();
-    setDrag(true);
-    const offsetX = event.clientX - position.x;
-    const offsetY = event.clientY - position.y;
+  const handleMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(
+    (event) => {
+      event.preventDefault();
+      setDrag(true);
+      const offsetX = event.clientX - position.x;
+      const offsetY = event.clientY - position.y;
 
-    setDragOffset({
-      x: offsetX,
-      y: offsetY
-    });
-  };
+      setDragOffset({
+        x: offsetX,
+        y: offsetY
+      });
+    },
+    [position.x, position.y]
+  );
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
@@ -53,14 +56,13 @@ const Card = (props: CardProps) => {
     }
   }, [drag]);
 
-  // todo : fix ts, and fixed propagation
   useEffect(() => {
-    window.addEventListener('mousedown', handleMouseDown);
+    // window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
     return () => {
-      window.removeEventListener('mousedown', handleMouseDown);
+      // window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -83,7 +85,7 @@ const Card = (props: CardProps) => {
   return (
     <div
       className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
-      // onMouseDown={handleMouseDown}
+      onMouseDown={handleMouseDown}
       onDoubleClick={handleChangeEdit}
       style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px) scale(${scale})` }}
     >
