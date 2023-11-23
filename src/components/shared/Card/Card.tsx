@@ -47,8 +47,8 @@ export const Card = memo((props: CardProps) => {
       if (event.button !== 0) return;
 
       const offset: ICoords = {
-        x: coords.x - rect.x,
-        y: coords.y - rect.y
+        x: event.clientX - rect.x,
+        y: event.clientY - rect.y
       };
 
       const mouseMove = (event: MouseEvent) => {
