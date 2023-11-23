@@ -169,7 +169,7 @@ const App = () => {
             zIndex: 1
           }}
         >
-          {Object.values(cards).map((cardData) => (
+          {cards.map((cardData) => (
             <Card
               onChangeText={handleChangeText}
               id={cardData.id}
