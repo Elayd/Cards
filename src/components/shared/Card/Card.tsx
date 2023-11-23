@@ -5,12 +5,12 @@ export interface CardProps {
   id: string;
   x: number;
   y: number;
-  scale: number;
   text: string;
+  scale: number;
 }
 
 const Card = (props: CardProps) => {
-  const { x, y, scale, text } = props;
+  const { x, y, text, scale } = props;
   const [cardText, setCardText] = useState<string>(text);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,27 +27,27 @@ const Card = (props: CardProps) => {
     (event) => {
       event.preventDefault();
       setDrag(true);
-      const offsetX = event.clientX - position.x;
-      const offsetY = event.clientY - position.y;
+      const offsetX = event.clientX - position.x * scale;
+      const offsetY = event.clientY - position.y * scale;
 
       setDragOffset({
         x: offsetX,
         y: offsetY
       });
     },
-    [position.x, position.y]
+    [position.x, position.y, scale]
   );
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
       event.preventDefault();
       if (drag) {
-        const newX = event.clientX - dragOffset.x;
-        const newY = event.clientY - dragOffset.y;
+        const newX = (event.clientX - dragOffset.x) / scale;
+        const newY = (event.clientY - dragOffset.y) / scale;
         setPosition({ x: newX, y: newY });
       }
     },
-    [drag, dragOffset]
+    [drag, dragOffset, scale]
   );
 
   const onMouseUp = useCallback(() => {
@@ -57,12 +57,10 @@ const Card = (props: CardProps) => {
   }, [drag]);
 
   useEffect(() => {
-    // window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
     return () => {
-      // window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -87,7 +85,7 @@ const Card = (props: CardProps) => {
       className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleChangeEdit}
-      style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px) scale(${scale})` }}
+      style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px)` }}
     >
       <input
         type="text"
