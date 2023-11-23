@@ -105,6 +105,8 @@ const App = () => {
 
   const inset: `${number}%` = `${(100 - 100 / canvasPosition.scale) / 2}%`;
 
+  console.log(cards);
+
   const handleCordsChange = useCallback((updatedCard: { id: string; coords: ICoords }) => {
     setCards((prev) => {
       return prev.map((card) => {

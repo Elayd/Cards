@@ -44,7 +44,9 @@ export const Card = memo((props: CardProps) => {
 
     const mouseDown = (event: MouseEvent) => {
       const rect = card.getBoundingClientRect();
-      if (event.button !== 0) return;
+      if (event.button !== 0) {
+        return;
+      }
 
       const offset: ICoords = {
         x: event.clientX - rect.x,
