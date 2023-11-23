@@ -1,77 +1,27 @@
 import styles from './Card.module.css';
-import { useState, ChangeEvent, useRef, useEffect, useCallback, MouseEventHandler } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
+import { useLatest } from '../../../hooks/useLatest.ts';
+import { CanvasPosition, ICoords } from '../../../types/types.ts';
 
 export interface CardProps {
   id: string;
-  x: number;
-  y: number;
+  coords: ICoords;
   text: string;
-  scale: number;
+  canvasCords: CanvasPosition;
+  onChangeCords: (changeCard: { id: string; coords: ICoords }) => void;
+  onChangeText: (id: string, text: string) => void;
 }
 
-const Card = (props: CardProps) => {
-  const { x, y, text, scale } = props;
-  const [cardText, setCardText] = useState<string>(text);
+export const Card = memo((props: CardProps) => {
+  const { coords, text, canvasCords, id, onChangeCords, onChangeText } = props;
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleChangeText = (event: ChangeEvent<HTMLInputElement>) => {
-    setCardText(event.target.value);
-  };
-
-  const [position, setPosition] = useState({ x: x, y: y });
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [drag, setDrag] = useState(false);
-
-  const handleMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(
-    (event) => {
-      event.preventDefault();
-      setDrag(true);
-      const offsetX = event.clientX - position.x * scale;
-      const offsetY = event.clientY - position.y * scale;
-
-      setDragOffset({
-        x: offsetX,
-        y: offsetY
-      });
-    },
-    [position.x, position.y, scale]
-  );
-
-  const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
-      event.preventDefault();
-      if (drag) {
-        const newX = (event.clientX - dragOffset.x) / scale;
-        const newY = (event.clientY - dragOffset.y) / scale;
-        setPosition({ x: newX, y: newY });
-      }
-    },
-    [drag, dragOffset, scale]
-  );
-
-  const onMouseUp = useCallback(() => {
-    if (drag) {
-      setDrag(false);
-    }
-  }, [drag]);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, [handleMouseMove, onMouseUp, drag, handleMouseDown]);
-
+  const [startPosition, setStartPosition] = useState<ICoords | null>(coords);
   const [canEdit, setCanEdit] = useState(true);
 
   const handleChangeEdit = () => {
     inputRef.current?.focus();
     if (inputRef.current) {
-      inputRef.current.setSelectionRange(cardText.length, cardText.length);
+      inputRef.current.setSelectionRange(text.length, text.length);
     }
     setCanEdit(false);
   };
@@ -80,24 +30,70 @@ const Card = (props: CardProps) => {
     setCanEdit(true);
   };
 
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const cardRef = useRef<HTMLInputElement | null>(null);
+
+  const latestCanvasCords = useLatest(canvasCords);
+
+  const latestStartCords = useLatest(startPosition);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const mouseDown = (event: MouseEvent) => {
+      const rect = card.getBoundingClientRect();
+      if (event.button !== 0) return;
+
+      const offset: ICoords = {
+        x: coords.x - rect.x,
+        y: coords.y - rect.y
+      };
+
+      const mouseMove = (event: MouseEvent) => {
+        event.preventDefault();
+        if (event.button !== 0) return;
+        setStartPosition({
+          x: (event.clientX - offset.x) / latestCanvasCords.current.scale - latestCanvasCords.current?.x / latestCanvasCords.current.scale,
+          y: (event.clientY - offset.y) / latestCanvasCords.current.scale - latestCanvasCords.current.y / latestCanvasCords.current.scale
+        });
+      };
+
+      const mouseUp = (event: MouseEvent) => {
+        if (event.button !== 0) return;
+        document.removeEventListener('mousemove', mouseMove);
+        if (latestStartCords.current !== null) {
+          onChangeCords({ id, coords: latestStartCords.current });
+        }
+        setStartPosition(null);
+      };
+
+      document.addEventListener('mousemove', mouseMove);
+      document.addEventListener('mouseup', mouseUp);
+    };
+
+    document.addEventListener('mousedown', mouseDown);
+    return () => {
+      document.removeEventListener('mousedown', mouseDown);
+    };
+  }, [coords, id, latestCanvasCords, latestStartCords, onChangeCords]);
   return (
     <div
       className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
-      onMouseDown={handleMouseDown}
+      ref={cardRef}
       onDoubleClick={handleChangeEdit}
-      style={{ position: 'absolute', transform: `translate(${position.x}px, ${position.y}px)` }}
+      style={{ position: 'absolute', transform: `translate(${startPosition?.x}px, ${startPosition?.y}px)` }}
     >
       <input
         type="text"
         ref={inputRef}
-        value={cardText}
-        onChange={handleChangeText}
+        value={text}
+        onChange={(event) => onChangeText(id, event.target.value)}
         readOnly={canEdit}
         onBlur={handleBlur}
         className={styles.input}
       />
     </div>
   );
-};
-
-export default Card;
+});
