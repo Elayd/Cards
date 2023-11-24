@@ -8,3 +8,7 @@
 .header {
     background-color: cadetblue;
 }
+
+.grab-card-mode {
+    cursor: grab;
+}
