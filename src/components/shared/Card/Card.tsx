@@ -13,6 +13,8 @@ export interface CardProps {
 
 export const Card = memo((props: CardProps) => {
   const { coords, text, canvasCords, id, onChangeCords, onChangeText } = props;
+  const [grab, setGrab] = useState(false);
+  const grabMode = grab ? 'grab' : '';
 
   const cardRef = useRef<HTMLInputElement | null>(null);
 
@@ -25,6 +27,7 @@ export const Card = memo((props: CardProps) => {
       if (event.button !== 0) {
         return;
       }
+      setGrab(true);
 
       const offset: ICoords = {
         x: event.clientX - rect.x,
@@ -46,6 +49,7 @@ export const Card = memo((props: CardProps) => {
 
       const mouseUp = (event: MouseEvent) => {
         if (event.button !== 0) return;
+        setGrab(false);
         document.removeEventListener('mousemove', mouseMove);
       };
 
@@ -78,7 +82,7 @@ export const Card = memo((props: CardProps) => {
       className={styles.card}
       ref={cardRef}
       onDoubleClick={handleChangeEdit}
-      style={{ position: 'absolute', transform: `translate(${coords.x}px, ${coords.y}px)` }}
+      style={{ cursor: `${grabMode}`, position: 'absolute', transform: `translate(${coords.x}px, ${coords.y}px)` }}
     >
       <input
         type="text"
