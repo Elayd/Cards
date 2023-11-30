@@ -75,9 +75,9 @@ export const Card = memo((props: CardProps) => {
       document.addEventListener('mouseup', mouseUp);
     };
 
-    document.addEventListener('mousedown', mouseDown);
+    card.addEventListener('mousedown', mouseDown);
     return () => {
-      document.removeEventListener('mousedown', mouseDown);
+      card.removeEventListener('mousedown', mouseDown);
     };
   }, [coords, id, latestCanvasCords, latestStartCords, onChangeCords]);
   return (

@@ -105,8 +105,6 @@ const App = () => {
 
   const inset: `${number}%` = `${(100 - 100 / canvasPosition.scale) / 2}%`;
 
-  console.log(cards);
-
   const handleCordsChange = useCallback((updatedCard: { id: string; coords: ICoords }) => {
     setCards((prev) => {
       return prev.map((card) => {
@@ -146,18 +144,17 @@ const App = () => {
         + Create the card
       </Button>
 
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }} onWheel={handleZoom}>
         <div
           className={createCardMode}
           onClick={handlePageClick}
-          onWheel={handleZoom}
           ref={backgroundRefCb}
           style={{
             transform: `scale(${canvasPosition.scale})`,
             position: 'fixed',
             inset: inset,
+            backgroundPosition: `${canvasPosition.x / canvasPosition.scale}px ${canvasPosition.y / canvasPosition.scale}px`,
             backgroundImage: 'url("https://svgshare.com/i/eGa.svg")',
-            backgroundPosition: `${canvasPosition.x / canvasPosition.scale}px ${canvasPosition.y / canvasPosition.scale}`,
             zIndex: 0
           }}
         />
@@ -165,10 +162,9 @@ const App = () => {
           style={{
             width: 0,
             height: 0,
-            position: 'relative',
-            transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${canvasPosition.scale})`,
+            position: 'absolute',
             overflow: 'visible',
-            zIndex: 1
+            transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${canvasPosition.scale})`
           }}
         >
           {cards.map((cardData) => (
