@@ -29,15 +29,19 @@ const App = () => {
   };
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const coords = { x: event.clientX / canvasPosition.scale, y: event.clientY / canvasPosition.scale };
-    if (creatingCard) {
-      createCard(coords, 'Text');
+    const canvasRect = backgroundRef.current?.getBoundingClientRect();
+
+    if (creatingCard && canvasRect) {
+      const canvasX = (event.clientX - canvasRect.left) / canvasPosition.scale - canvasPosition.x / canvasPosition.scale;
+      const canvasY = (event.clientY - canvasRect.top) / canvasPosition.scale - canvasPosition.y / canvasPosition.scale;
+
+      createCard({ x: canvasX, y: canvasY }, 'Text');
     }
   };
 
   const createCardMode = creatingCard ? 'creating-card-mode' : '';
 
-  const backgroundRef = useRef<HTMLElement | null>(null);
+  const backgroundRef = useRef<HTMLDivElement>(null);
   const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
     x: 0,
     y: 0,
@@ -46,66 +50,90 @@ const App = () => {
 
   const handleZoom = (event: React.WheelEvent<HTMLDivElement>) => {
     const zoomFactor = 1 - event.deltaY / ZOOM_SENSITIVITY;
+
+    const rect = backgroundRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const originX = (mouseX - canvasPosition.x) / canvasPosition.scale;
+    const originY = (mouseY - canvasPosition.y) / canvasPosition.scale;
+
+    const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, canvasPosition.scale * zoomFactor));
+
     setCanvasPosition((prevCanvasPos) => ({
       ...prevCanvasPos,
-      scale: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevCanvasPos.scale * zoomFactor))
+      scale: newScale,
+      x: mouseX - originX * newScale,
+      y: mouseY - originY * newScale
     }));
   };
 
   const prevCordsRef = useRef<ICoords>({ x: 0, y: 0 });
-  const backgroundRefCb = useCallback((el: HTMLElement | null) => {
-    backgroundRef.current = el;
+  const [grab, setGrab] = useState(false);
+
+  const grabMode = grab ? 'grab-card-mode' : '';
+
+  const mouseMove = useCallback((event: MouseEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+    const newCords: ICoords = { x: event.clientX, y: event.clientY };
+    const prevCords = prevCordsRef.current;
+
+    const diffX = newCords.x - prevCords.x;
+    const diffY = newCords.y - prevCords.y;
+    setCanvasPosition((prevCanvasPos) => {
+      return {
+        ...prevCanvasPos,
+        x: prevCanvasPos.x + diffX,
+        y: prevCanvasPos.y + diffY
+      };
+    });
+    prevCordsRef.current = newCords;
   }, []);
+
+  const mouseUp = useCallback(
+    (event: MouseEvent) => {
+      if (event.button !== 0) {
+        return;
+      }
+      setGrab(false);
+      document.removeEventListener('mousemove', mouseMove);
+    },
+    [mouseMove]
+  );
+
+  const mouseDown = useCallback(
+    (event: MouseEvent) => {
+      if (event.button !== 0) {
+        return;
+      }
+      setGrab(true);
+      prevCordsRef.current = { x: event.clientX, y: event.clientY };
+
+      document.addEventListener('mousemove', mouseMove);
+      document.addEventListener('mouseup', mouseUp);
+    },
+    [mouseMove, mouseUp]
+  );
 
   useEffect(() => {
     const background = backgroundRef.current;
 
     if (!background) return;
 
-    const mouseDown = (event: MouseEvent) => {
-      if (event.button !== 0) {
-        return;
-      }
-      prevCordsRef.current = { x: event.clientX, y: event.clientY };
-
-      const mouseMove = (event: MouseEvent) => {
-        if (event.button !== 0) {
-          return;
-        }
-        const newCords: ICoords = { x: event.clientX, y: event.clientY };
-        const prevCords = prevCordsRef.current;
-
-        const diffX = newCords.x - prevCords.x;
-        const diffY = newCords.y - prevCords.y;
-        setCanvasPosition((prevCanvasPos) => {
-          return {
-            ...prevCanvasPos,
-            x: prevCanvasPos.x + diffX,
-            y: prevCanvasPos.y + diffY
-          };
-        });
-        prevCordsRef.current = newCords;
-      };
-
-      const mouseUp = (event: MouseEvent) => {
-        if (event.button !== 0) {
-          return;
-        }
-        background.removeEventListener('mousemove', mouseMove);
-      };
-      background.addEventListener('mousemove', mouseMove);
-      background.addEventListener('mouseup', mouseUp);
-    };
     background.addEventListener('mousedown', mouseDown);
 
     return () => {
       background.removeEventListener('mousedown', mouseDown);
+      document.removeEventListener('mouseup', mouseUp);
+      document.removeEventListener('mousemove', mouseMove);
     };
-  }, []);
+  }, [mouseDown, mouseMove, mouseUp]);
 
   const inset: `${number}%` = `${(100 - 100 / canvasPosition.scale) / 2}%`;
-
-  console.log(cards);
 
   const handleCordsChange = useCallback((updatedCard: { id: string; coords: ICoords }) => {
     setCards((prev) => {
@@ -146,18 +174,17 @@ const App = () => {
         + Create the card
       </Button>
 
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }} onWheel={handleZoom}>
         <div
-          className={createCardMode}
+          className={`${grabMode} ${createCardMode}`}
           onClick={handlePageClick}
-          onWheel={handleZoom}
-          ref={backgroundRefCb}
+          ref={backgroundRef}
           style={{
             transform: `scale(${canvasPosition.scale})`,
             position: 'fixed',
             inset: inset,
+            backgroundPosition: `${canvasPosition.x / canvasPosition.scale}px ${canvasPosition.y / canvasPosition.scale}px`,
             backgroundImage: 'url("https://svgshare.com/i/eGa.svg")',
-            backgroundPosition: `${canvasPosition.x / canvasPosition.scale}px ${canvasPosition.y / canvasPosition.scale}`,
             zIndex: 0
           }}
         />
@@ -165,10 +192,9 @@ const App = () => {
           style={{
             width: 0,
             height: 0,
-            position: 'relative',
-            transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${canvasPosition.scale})`,
+            position: 'absolute',
             overflow: 'visible',
-            zIndex: 1
+            transform: `translate(${canvasPosition.x}px, ${canvasPosition.y}px) scale(${canvasPosition.scale})`
           }}
         >
           {cards.map((cardData) => (
