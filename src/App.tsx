@@ -29,15 +29,19 @@ const App = () => {
   };
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const coords = { x: event.clientX / canvasPosition.scale, y: event.clientY / canvasPosition.scale };
-    if (creatingCard) {
-      createCard(coords, 'Text');
+    const canvasRect = backgroundRef.current?.getBoundingClientRect();
+
+    if (creatingCard && canvasRect) {
+      const canvasX = (event.clientX - canvasRect.left) / canvasPosition.scale - canvasPosition.x / canvasPosition.scale;
+      const canvasY = (event.clientY - canvasRect.top) / canvasPosition.scale - canvasPosition.y / canvasPosition.scale;
+
+      createCard({ x: canvasX, y: canvasY }, 'Text');
     }
   };
 
   const createCardMode = creatingCard ? 'creating-card-mode' : '';
 
-  const backgroundRef = useRef<HTMLElement | null>(null);
+  const backgroundRef = useRef<HTMLDivElement>(null);
   const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
     x: 0,
     y: 0,
@@ -46,16 +50,30 @@ const App = () => {
 
   const handleZoom = (event: React.WheelEvent<HTMLDivElement>) => {
     const zoomFactor = 1 - event.deltaY / ZOOM_SENSITIVITY;
+
+    const rect = backgroundRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const originX = (mouseX - canvasPosition.x) / canvasPosition.scale;
+    const originY = (mouseY - canvasPosition.y) / canvasPosition.scale;
+
+    const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, canvasPosition.scale * zoomFactor));
+
     setCanvasPosition((prevCanvasPos) => ({
       ...prevCanvasPos,
-      scale: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prevCanvasPos.scale * zoomFactor))
+      scale: newScale,
+      x: mouseX - originX * newScale,
+      y: mouseY - originY * newScale
     }));
   };
 
   const prevCordsRef = useRef<ICoords>({ x: 0, y: 0 });
-  const backgroundRefCb = useCallback((el: HTMLElement | null) => {
-    backgroundRef.current = el;
-  }, []);
+  const [grab, setGrab] = useState(false);
+
+  const grabMode = grab ? 'grab-card-mode' : '';
 
   useEffect(() => {
     const background = backgroundRef.current;
@@ -66,6 +84,7 @@ const App = () => {
       if (event.button !== 0) {
         return;
       }
+      setGrab(true);
       prevCordsRef.current = { x: event.clientX, y: event.clientY };
 
       const mouseMove = (event: MouseEvent) => {
@@ -91,10 +110,11 @@ const App = () => {
         if (event.button !== 0) {
           return;
         }
-        background.removeEventListener('mousemove', mouseMove);
+        setGrab(false);
+        document.removeEventListener('mousemove', mouseMove);
       };
-      background.addEventListener('mousemove', mouseMove);
-      background.addEventListener('mouseup', mouseUp);
+      document.addEventListener('mousemove', mouseMove);
+      document.addEventListener('mouseup', mouseUp);
     };
     background.addEventListener('mousedown', mouseDown);
 
@@ -137,6 +157,7 @@ const App = () => {
       });
     });
   }, []);
+  console.log(grab);
 
   return (
     <>
@@ -146,9 +167,9 @@ const App = () => {
 
       <div style={{ position: 'relative' }} onWheel={handleZoom}>
         <div
-          className={createCardMode}
+          className={`${grabMode} ${createCardMode}`}
           onClick={handlePageClick}
-          ref={backgroundRefCb}
+          ref={backgroundRef}
           style={{
             transform: `scale(${canvasPosition.scale})`,
             position: 'fixed',

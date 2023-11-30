@@ -1,7 +1,6 @@
+import { memo, useEffect, useRef, useState } from 'react';
+import { ICoords, CanvasPosition } from '../../../types/types.ts';
 import styles from './Card.module.css';
-import { useState, useRef, useEffect, memo } from 'react';
-import { useLatest } from '../../../hooks/useLatest.ts';
-import { CanvasPosition, ICoords } from '../../../types/types.ts';
 
 export interface CardProps {
   id: string;
@@ -15,28 +14,7 @@ export interface CardProps {
 export const Card = memo((props: CardProps) => {
   const { coords, text, canvasCords, id, onChangeCords, onChangeText } = props;
 
-  const [startPosition, setStartPosition] = useState<ICoords | null>(coords);
-  const [canEdit, setCanEdit] = useState(true);
-
-  const handleChangeEdit = () => {
-    inputRef.current?.focus();
-    if (inputRef.current) {
-      inputRef.current.setSelectionRange(text.length, text.length);
-    }
-    setCanEdit(false);
-  };
-
-  const handleBlur = () => {
-    setCanEdit(true);
-  };
-
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
   const cardRef = useRef<HTMLInputElement | null>(null);
-
-  const latestCanvasCords = useLatest(canvasCords);
-
-  const latestStartCords = useLatest(startPosition);
 
   useEffect(() => {
     const card = cardRef.current;
@@ -56,19 +34,19 @@ export const Card = memo((props: CardProps) => {
       const mouseMove = (event: MouseEvent) => {
         event.preventDefault();
         if (event.button !== 0) return;
-        setStartPosition({
-          x: (event.clientX - offset.x) / latestCanvasCords.current.scale - latestCanvasCords.current?.x / latestCanvasCords.current.scale,
-          y: (event.clientY - offset.y) / latestCanvasCords.current.scale - latestCanvasCords.current.y / latestCanvasCords.current.scale
+        const newCoords: ICoords = {
+          x: (event.clientX - offset.x) / canvasCords.scale - canvasCords.x / canvasCords.scale,
+          y: (event.clientY - offset.y) / canvasCords.scale - canvasCords.y / canvasCords.scale
+        };
+        onChangeCords({
+          id,
+          coords: newCoords
         });
       };
 
       const mouseUp = (event: MouseEvent) => {
         if (event.button !== 0) return;
         document.removeEventListener('mousemove', mouseMove);
-        if (latestStartCords.current !== null) {
-          onChangeCords({ id, coords: latestStartCords.current });
-        }
-        setStartPosition(null);
       };
 
       document.addEventListener('mousemove', mouseMove);
@@ -79,13 +57,28 @@ export const Card = memo((props: CardProps) => {
     return () => {
       card.removeEventListener('mousedown', mouseDown);
     };
-  }, [coords, id, latestCanvasCords, latestStartCords, onChangeCords]);
+  }, [id, canvasCords, onChangeCords]);
+
+  const [canEdit, setCanEdit] = useState(true);
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const handleBlur = () => {
+    setCanEdit(true);
+  };
+  const handleChangeEdit = () => {
+    inputRef.current?.focus();
+    if (inputRef.current) {
+      inputRef.current.setSelectionRange(text.length, text.length);
+    }
+    setCanEdit(false);
+  };
+
   return (
     <div
-      className={`${styles.card} ${canEdit ? '' : styles.canEdit}`}
+      className={styles.card}
       ref={cardRef}
       onDoubleClick={handleChangeEdit}
-      style={{ position: 'absolute', transform: `translate(${startPosition?.x}px, ${startPosition?.y}px)` }}
+      style={{ position: 'absolute', transform: `translate(${coords.x}px, ${coords.y}px)` }}
     >
       <input
         type="text"
