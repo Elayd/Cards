@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ICoords, CanvasPosition } from '../../../types/types.ts';
 import styles from './Card.module.css';
 
@@ -18,50 +18,70 @@ export const Card = memo((props: CardProps) => {
 
   const cardRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
+  const offsetRef = useRef<ICoords | null>(null);
 
-    const mouseDown = (event: MouseEvent) => {
+  const mouseMove = useCallback(
+    (event: MouseEvent) => {
+      event.preventDefault();
+      if (event.button !== 0 || !offsetRef.current) return;
+
+      const newCoords: ICoords = {
+        x: (event.clientX - offsetRef.current.x) / canvasCords.scale - canvasCords.x / canvasCords.scale,
+        y: (event.clientY - offsetRef.current.y) / canvasCords.scale - canvasCords.y / canvasCords.scale
+      };
+      onChangeCords({
+        id,
+        coords: newCoords
+      });
+    },
+    [canvasCords, id, onChangeCords]
+  );
+
+  const mouseUp = useCallback(
+    (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      setGrab(false);
+      offsetRef.current = null;
+      document.removeEventListener('mousemove', mouseMove);
+      document.removeEventListener('mouseup', mouseUp);
+    },
+    [mouseMove]
+  );
+
+  const mouseDown = useCallback(
+    (event: MouseEvent) => {
+      const card = cardRef.current;
+      if (!card) return;
+
       const rect = card.getBoundingClientRect();
       if (event.button !== 0) {
         return;
       }
       setGrab(true);
 
-      const offset: ICoords = {
+      offsetRef.current = {
         x: event.clientX - rect.x,
         y: event.clientY - rect.y
       };
 
-      const mouseMove = (event: MouseEvent) => {
-        event.preventDefault();
-        if (event.button !== 0) return;
-        const newCoords: ICoords = {
-          x: (event.clientX - offset.x) / canvasCords.scale - canvasCords.x / canvasCords.scale,
-          y: (event.clientY - offset.y) / canvasCords.scale - canvasCords.y / canvasCords.scale
-        };
-        onChangeCords({
-          id,
-          coords: newCoords
-        });
-      };
-
-      const mouseUp = (event: MouseEvent) => {
-        if (event.button !== 0) return;
-        setGrab(false);
-        document.removeEventListener('mousemove', mouseMove);
-      };
-
       document.addEventListener('mousemove', mouseMove);
       document.addEventListener('mouseup', mouseUp);
-    };
+    },
+    [mouseMove, mouseUp]
+  );
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
 
     card.addEventListener('mousedown', mouseDown);
+
     return () => {
       card.removeEventListener('mousedown', mouseDown);
+      document.removeEventListener('mousemove', mouseMove);
+      document.removeEventListener('mouseup', mouseUp);
     };
-  }, [id, canvasCords, onChangeCords]);
+  }, [id, canvasCords, onChangeCords, mouseDown, mouseMove, mouseUp]);
 
   const [canEdit, setCanEdit] = useState(true);
 

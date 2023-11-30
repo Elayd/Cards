@@ -75,53 +75,63 @@ const App = () => {
 
   const grabMode = grab ? 'grab-card-mode' : '';
 
-  useEffect(() => {
-    const background = backgroundRef.current;
+  const mouseMove = useCallback((event: MouseEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+    const newCords: ICoords = { x: event.clientX, y: event.clientY };
+    const prevCords = prevCordsRef.current;
 
-    if (!background) return;
+    const diffX = newCords.x - prevCords.x;
+    const diffY = newCords.y - prevCords.y;
+    setCanvasPosition((prevCanvasPos) => {
+      return {
+        ...prevCanvasPos,
+        x: prevCanvasPos.x + diffX,
+        y: prevCanvasPos.y + diffY
+      };
+    });
+    prevCordsRef.current = newCords;
+  }, []);
 
-    const mouseDown = (event: MouseEvent) => {
+  const mouseUp = useCallback(
+    (event: MouseEvent) => {
+      if (event.button !== 0) {
+        return;
+      }
+      setGrab(false);
+      document.removeEventListener('mousemove', mouseMove);
+    },
+    [mouseMove]
+  );
+
+  const mouseDown = useCallback(
+    (event: MouseEvent) => {
       if (event.button !== 0) {
         return;
       }
       setGrab(true);
       prevCordsRef.current = { x: event.clientX, y: event.clientY };
 
-      const mouseMove = (event: MouseEvent) => {
-        if (event.button !== 0) {
-          return;
-        }
-        const newCords: ICoords = { x: event.clientX, y: event.clientY };
-        const prevCords = prevCordsRef.current;
-
-        const diffX = newCords.x - prevCords.x;
-        const diffY = newCords.y - prevCords.y;
-        setCanvasPosition((prevCanvasPos) => {
-          return {
-            ...prevCanvasPos,
-            x: prevCanvasPos.x + diffX,
-            y: prevCanvasPos.y + diffY
-          };
-        });
-        prevCordsRef.current = newCords;
-      };
-
-      const mouseUp = (event: MouseEvent) => {
-        if (event.button !== 0) {
-          return;
-        }
-        setGrab(false);
-        document.removeEventListener('mousemove', mouseMove);
-      };
       document.addEventListener('mousemove', mouseMove);
       document.addEventListener('mouseup', mouseUp);
-    };
+    },
+    [mouseMove, mouseUp]
+  );
+
+  useEffect(() => {
+    const background = backgroundRef.current;
+
+    if (!background) return;
+
     background.addEventListener('mousedown', mouseDown);
 
     return () => {
       background.removeEventListener('mousedown', mouseDown);
+      document.removeEventListener('mouseup', mouseUp);
+      document.removeEventListener('mousemove', mouseMove);
     };
-  }, []);
+  }, [mouseDown, mouseMove, mouseUp]);
 
   const inset: `${number}%` = `${(100 - 100 / canvasPosition.scale) / 2}%`;
 
@@ -157,7 +167,6 @@ const App = () => {
       });
     });
   }, []);
-  console.log(grab);
 
   return (
     <>
