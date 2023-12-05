@@ -1,6 +1,7 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { ICoords, CanvasPosition } from '../../../types/types.ts';
 import styles from './Card.module.css';
+import svg from '../../assets/delete.svg';
 
 export interface CardProps {
   id: string;
@@ -9,10 +10,11 @@ export interface CardProps {
   canvasCords: CanvasPosition;
   onChangeCords: (changeCard: { id: string; coords: ICoords }) => void;
   onChangeText: (id: string, text: string) => void;
+  onDeleteCard: (id: string) => void;
 }
 
 export const Card = memo((props: CardProps) => {
-  const { coords, text, canvasCords, id, onChangeCords, onChangeText } = props;
+  const { coords, text, canvasCords, id, onChangeCords, onChangeText, onDeleteCard } = props;
   const [grab, setGrab] = useState(false);
   const grabMode = grab ? 'grab' : '';
 
@@ -20,8 +22,11 @@ export const Card = memo((props: CardProps) => {
 
   const offsetRef = useRef<ICoords | null>(null);
 
-  const mouseMove = useCallback(
-    (event: MouseEvent) => {
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const mouseMove = (event: MouseEvent) => {
       event.preventDefault();
       if (event.button !== 0 || !offsetRef.current) return;
 
@@ -33,23 +38,17 @@ export const Card = memo((props: CardProps) => {
         id,
         coords: newCoords
       });
-    },
-    [canvasCords, id, onChangeCords]
-  );
+    };
 
-  const mouseUp = useCallback(
-    (event: MouseEvent) => {
+    const mouseUp = (event: MouseEvent) => {
       if (event.button !== 0) return;
       setGrab(false);
       offsetRef.current = null;
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
-    },
-    [mouseMove]
-  );
+    };
 
-  const mouseDown = useCallback(
-    (event: MouseEvent) => {
+    const mouseDown = (event: MouseEvent) => {
       const card = cardRef.current;
       if (!card) return;
 
@@ -66,13 +65,7 @@ export const Card = memo((props: CardProps) => {
 
       document.addEventListener('mousemove', mouseMove);
       document.addEventListener('mouseup', mouseUp);
-    },
-    [mouseMove, mouseUp]
-  );
-
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
+    };
 
     card.addEventListener('mousedown', mouseDown);
 
@@ -81,11 +74,11 @@ export const Card = memo((props: CardProps) => {
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
     };
-  }, [id, canvasCords, onChangeCords, mouseDown, mouseMove, mouseUp]);
+  }, [id, canvasCords, onChangeCords]);
 
   const [canEdit, setCanEdit] = useState(true);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const handleBlur = () => {
     setCanEdit(true);
   };
@@ -104,14 +97,17 @@ export const Card = memo((props: CardProps) => {
       onDoubleClick={handleChangeEdit}
       style={{ cursor: `${grabMode}`, position: 'absolute', transform: `translate(${coords.x}px, ${coords.y}px)` }}
     >
-      <input
-        type="text"
+      <div className={styles.removeIconWrapper}>
+        <img src={svg} className={styles.removeIcon} onClick={() => onDeleteCard(id)} alt="Icon" width="20" height="20" />
+      </div>
+      <textarea
         ref={inputRef}
         value={text}
         onChange={(event) => onChangeText(id, event.target.value)}
         readOnly={canEdit}
         onBlur={handleBlur}
         className={styles.input}
+        maxLength={250}
       />
     </div>
   );

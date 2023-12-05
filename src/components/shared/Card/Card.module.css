@@ -25,9 +25,24 @@
     outline: none;
     font-size: inherit;
     text-align: center;
-    width: 100%;
     box-shadow: 0 0 0 rgb(255, 255, 255);
+    overflow: hidden;
+    resize: none;
+    margin-top: 30px;
+    height: 90%;
 }
 input::selection {
     background-color: transparent;
+}
+
+.removeIconWrapper {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+}
+
+.removeIcon {
+    cursor: pointer;
+    border: 1px solid black;
+    border-radius: 50%;
 }
