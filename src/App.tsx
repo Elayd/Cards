@@ -4,6 +4,7 @@ import Button from './components/shared/Button/Button.tsx';
 import { Card } from './components/shared/Card/Card.tsx';
 import { v4 as uuidv4 } from 'uuid';
 import { CanvasPosition, ICoords } from './types/types.ts';
+import backgroundSrc from './components/assets/background.svg';
 
 const ZOOM_SENSITIVITY = 500;
 const MAX_ZOOM = 4;
@@ -18,6 +19,7 @@ interface Card {
 const App = () => {
   const [creatingCard, setCreatingCard] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
+  console.log(cards);
   const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
     x: 0,
     y: 0,
@@ -162,6 +164,10 @@ const App = () => {
     });
   }, []);
 
+  const handleDeleteCard = useCallback((id: string) => {
+    setCards((prev) => prev.filter((card) => card.id !== id));
+  }, []);
+
   return (
     <>
       <Button width={200} height={100} handleClick={handleButtonClick}>
@@ -178,7 +184,7 @@ const App = () => {
             position: 'fixed',
             inset: inset,
             backgroundPosition: `${canvasPosition.x / canvasPosition.scale}px ${canvasPosition.y / canvasPosition.scale}px`,
-            backgroundImage: 'url("https://svgshare.com/i/eGa.svg")',
+            backgroundImage: `url(${backgroundSrc})`,
             zIndex: 0
           }}
         />
@@ -199,6 +205,7 @@ const App = () => {
               canvasCords={canvasPosition}
               key={cardData.id}
               onChangeCords={handleCordsChange}
+              onDeleteCard={handleDeleteCard}
               coords={cardData.coords}
             />
           ))}
