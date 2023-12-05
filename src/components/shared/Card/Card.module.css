@@ -25,8 +25,11 @@
     outline: none;
     font-size: inherit;
     text-align: center;
-    width: 100%;
     box-shadow: 0 0 0 rgb(255, 255, 255);
+    overflow: hidden;
+    resize: none;
+    margin-top: 20px;
+    height: 90%;
 }
 input::selection {
     background-color: transparent;

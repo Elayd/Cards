@@ -8,6 +8,7 @@ import { CanvasPosition, ICoords } from './types/types.ts';
 const ZOOM_SENSITIVITY = 500;
 const MAX_ZOOM = 4;
 const MIN_ZOOM = 0.25;
+
 interface Card {
   id: string;
   coords: ICoords;
@@ -17,6 +18,12 @@ interface Card {
 const App = () => {
   const [creatingCard, setCreatingCard] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
+  const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
+    x: 0,
+    y: 0,
+    scale: 1
+  });
+
   const handleButtonClick = () => {
     setCreatingCard(!creatingCard);
   };
@@ -29,12 +36,10 @@ const App = () => {
   };
 
   const handlePageClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const canvasRect = backgroundRef.current?.getBoundingClientRect();
+    const canvasX = (event.clientX - canvasPosition.x) / canvasPosition.scale;
+    const canvasY = (event.clientY - canvasPosition.y) / canvasPosition.scale;
 
-    if (creatingCard && canvasRect) {
-      const canvasX = (event.clientX - canvasRect.left) / canvasPosition.scale - canvasPosition.x / canvasPosition.scale;
-      const canvasY = (event.clientY - canvasRect.top) / canvasPosition.scale - canvasPosition.y / canvasPosition.scale;
-
+    if (creatingCard) {
       createCard({ x: canvasX, y: canvasY }, 'Text');
     }
   };
@@ -42,31 +47,26 @@ const App = () => {
   const createCardMode = creatingCard ? 'creating-card-mode' : '';
 
   const backgroundRef = useRef<HTMLDivElement>(null);
-  const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
-    x: 0,
-    y: 0,
-    scale: 1
-  });
 
   const handleZoom = (event: React.WheelEvent<HTMLDivElement>) => {
     const zoomFactor = 1 - event.deltaY / ZOOM_SENSITIVITY;
 
-    const rect = backgroundRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const position = canvasPosition;
 
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    if (!position) return;
 
-    const originX = (mouseX - canvasPosition.x) / canvasPosition.scale;
-    const originY = (mouseY - canvasPosition.y) / canvasPosition.scale;
+    const mouseX = event.clientX - position.x;
+    const mouseY = event.clientY - position.y;
 
     const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, canvasPosition.scale * zoomFactor));
+    const diffX = mouseX - (mouseX / position.scale) * newScale;
+    const diffY = mouseY - (mouseY / position.scale) * newScale;
 
     setCanvasPosition((prevCanvasPos) => ({
       ...prevCanvasPos,
       scale: newScale,
-      x: mouseX - originX * newScale,
-      y: mouseY - originY * newScale
+      x: position.x + diffX,
+      y: position.y + diffY
     }));
   };
 
@@ -75,38 +75,39 @@ const App = () => {
 
   const grabMode = grab ? 'grab-card-mode' : '';
 
-  const mouseMove = useCallback((event: MouseEvent) => {
-    if (event.button !== 0) {
-      return;
-    }
-    const newCords: ICoords = { x: event.clientX, y: event.clientY };
-    const prevCords = prevCordsRef.current;
+  useEffect(() => {
+    const background = backgroundRef.current;
 
-    const diffX = newCords.x - prevCords.x;
-    const diffY = newCords.y - prevCords.y;
-    setCanvasPosition((prevCanvasPos) => {
-      return {
-        ...prevCanvasPos,
-        x: prevCanvasPos.x + diffX,
-        y: prevCanvasPos.y + diffY
-      };
-    });
-    prevCordsRef.current = newCords;
-  }, []);
+    if (!background) return;
 
-  const mouseUp = useCallback(
-    (event: MouseEvent) => {
+    const mouseMove = (event: MouseEvent) => {
+      if (event.button !== 0) {
+        return;
+      }
+      const newCords: ICoords = { x: event.clientX, y: event.clientY };
+      const prevCords = prevCordsRef.current;
+
+      const diffX = newCords.x - prevCords.x;
+      const diffY = newCords.y - prevCords.y;
+      setCanvasPosition((prevCanvasPos) => {
+        return {
+          ...prevCanvasPos,
+          x: prevCanvasPos.x + diffX,
+          y: prevCanvasPos.y + diffY
+        };
+      });
+      prevCordsRef.current = newCords;
+    };
+
+    const mouseUp = (event: MouseEvent) => {
       if (event.button !== 0) {
         return;
       }
       setGrab(false);
       document.removeEventListener('mousemove', mouseMove);
-    },
-    [mouseMove]
-  );
+    };
 
-  const mouseDown = useCallback(
-    (event: MouseEvent) => {
+    const mouseDown = (event: MouseEvent) => {
       if (event.button !== 0) {
         return;
       }
@@ -115,14 +116,7 @@ const App = () => {
 
       document.addEventListener('mousemove', mouseMove);
       document.addEventListener('mouseup', mouseUp);
-    },
-    [mouseMove, mouseUp]
-  );
-
-  useEffect(() => {
-    const background = backgroundRef.current;
-
-    if (!background) return;
+    };
 
     background.addEventListener('mousedown', mouseDown);
 
@@ -131,7 +125,7 @@ const App = () => {
       document.removeEventListener('mouseup', mouseUp);
       document.removeEventListener('mousemove', mouseMove);
     };
-  }, [mouseDown, mouseMove, mouseUp]);
+  }, []);
 
   const inset: `${number}%` = `${(100 - 100 / canvasPosition.scale) / 2}%`;
 
@@ -174,7 +168,7 @@ const App = () => {
         + Create the card
       </Button>
 
-      <div style={{ position: 'relative' }} onWheel={handleZoom}>
+      <div style={{ position: 'relative', overflow: 'hidden', width: '100%', height: '100%' }} onWheel={handleZoom}>
         <div
           className={`${grabMode} ${createCardMode}`}
           onClick={handlePageClick}

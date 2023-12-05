@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { ICoords, CanvasPosition } from '../../../types/types.ts';
 import styles from './Card.module.css';
 
@@ -20,8 +20,11 @@ export const Card = memo((props: CardProps) => {
 
   const offsetRef = useRef<ICoords | null>(null);
 
-  const mouseMove = useCallback(
-    (event: MouseEvent) => {
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const mouseMove = (event: MouseEvent) => {
       event.preventDefault();
       if (event.button !== 0 || !offsetRef.current) return;
 
@@ -33,23 +36,17 @@ export const Card = memo((props: CardProps) => {
         id,
         coords: newCoords
       });
-    },
-    [canvasCords, id, onChangeCords]
-  );
+    };
 
-  const mouseUp = useCallback(
-    (event: MouseEvent) => {
+    const mouseUp = (event: MouseEvent) => {
       if (event.button !== 0) return;
       setGrab(false);
       offsetRef.current = null;
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
-    },
-    [mouseMove]
-  );
+    };
 
-  const mouseDown = useCallback(
-    (event: MouseEvent) => {
+    const mouseDown = (event: MouseEvent) => {
       const card = cardRef.current;
       if (!card) return;
 
@@ -66,13 +63,7 @@ export const Card = memo((props: CardProps) => {
 
       document.addEventListener('mousemove', mouseMove);
       document.addEventListener('mouseup', mouseUp);
-    },
-    [mouseMove, mouseUp]
-  );
-
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
+    };
 
     card.addEventListener('mousedown', mouseDown);
 
@@ -81,11 +72,11 @@ export const Card = memo((props: CardProps) => {
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
     };
-  }, [id, canvasCords, onChangeCords, mouseDown, mouseMove, mouseUp]);
+  }, [id, canvasCords, onChangeCords]);
 
   const [canEdit, setCanEdit] = useState(true);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const handleBlur = () => {
     setCanEdit(true);
   };
@@ -104,14 +95,14 @@ export const Card = memo((props: CardProps) => {
       onDoubleClick={handleChangeEdit}
       style={{ cursor: `${grabMode}`, position: 'absolute', transform: `translate(${coords.x}px, ${coords.y}px)` }}
     >
-      <input
-        type="text"
+      <textarea
         ref={inputRef}
         value={text}
         onChange={(event) => onChangeText(id, event.target.value)}
         readOnly={canEdit}
         onBlur={handleBlur}
         className={styles.input}
+        maxLength={250}
       />
     </div>
   );
