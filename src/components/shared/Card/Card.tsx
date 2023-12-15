@@ -2,6 +2,8 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { ICoords, CanvasPosition } from '../../../types/types.ts';
 import styles from './Card.module.css';
 import svg from '../../assets/delete.svg';
+import { throttle } from '../../../hooks/rafThrottle.ts';
+import { useLatest } from '../../../hooks/useLatest.ts';
 
 export interface CardProps {
   id: string;
@@ -18,7 +20,12 @@ export const Card = memo((props: CardProps) => {
   const [grab, setGrab] = useState(false);
   const grabMode = grab ? 'grab' : '';
 
-  const cardRef = useRef<HTMLInputElement | null>(null);
+  const [localCoords, setLocalCoords] = useState<ICoords | null>(null);
+
+  const latestCoords = useLatest(coords);
+  const latestLocalCoords = useLatest(localCoords);
+
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const offsetRef = useRef<ICoords | null>(null);
 
@@ -26,24 +33,25 @@ export const Card = memo((props: CardProps) => {
     const card = cardRef.current;
     if (!card) return;
 
-    const mouseMove = (event: MouseEvent) => {
-      event.preventDefault();
+    const mouseMove = throttle((event: MouseEvent) => {
       if (event.button !== 0 || !offsetRef.current) return;
 
       const newCoords: ICoords = {
         x: (event.clientX - offsetRef.current.x) / canvasCords.scale - canvasCords.x / canvasCords.scale,
         y: (event.clientY - offsetRef.current.y) / canvasCords.scale - canvasCords.y / canvasCords.scale
       };
-      onChangeCords({
-        id,
-        coords: newCoords
-      });
-    };
+      setLocalCoords(newCoords);
+    });
 
     const mouseUp = (event: MouseEvent) => {
       if (event.button !== 0) return;
       setGrab(false);
       offsetRef.current = null;
+      setLocalCoords(null);
+      onChangeCords({
+        id,
+        coords: latestLocalCoords.current ?? latestCoords.current
+      });
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
     };
@@ -52,15 +60,15 @@ export const Card = memo((props: CardProps) => {
       const card = cardRef.current;
       if (!card) return;
 
-      const rect = card.getBoundingClientRect();
       if (event.button !== 0) {
         return;
       }
       setGrab(true);
 
+      setLocalCoords(latestCoords.current);
       offsetRef.current = {
-        x: event.clientX - rect.x,
-        y: event.clientY - rect.y
+        x: event.offsetX * canvasCords.scale,
+        y: event.offsetY * canvasCords.scale
       };
 
       document.addEventListener('mousemove', mouseMove);
@@ -74,7 +82,7 @@ export const Card = memo((props: CardProps) => {
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
     };
-  }, [id, canvasCords, onChangeCords]);
+  }, [id, canvasCords, onChangeCords, latestLocalCoords, latestCoords]);
 
   const [canEdit, setCanEdit] = useState(true);
 
@@ -90,12 +98,13 @@ export const Card = memo((props: CardProps) => {
     setCanEdit(false);
   };
 
+  const cardCoords = localCoords ?? coords;
   return (
     <div
       className={styles.card}
       ref={cardRef}
       onDoubleClick={handleChangeEdit}
-      style={{ cursor: `${grabMode}`, position: 'absolute', transform: `translate(${coords.x}px, ${coords.y}px)` }}
+      style={{ cursor: `${grabMode}`, position: 'absolute', transform: `translate(${cardCoords.x}px, ${cardCoords.y}px)` }}
     >
       <div className={styles.removeIconWrapper}>
         <img src={svg} className={styles.removeIcon} onClick={() => onDeleteCard(id)} alt="Icon" width="20" height="20" />
