@@ -203,7 +203,7 @@ const App = () => {
               onChangeText={handleChangeText}
               id={cardData.id}
               text={cardData.text}
-              canvasCords={canvasPosition}
+              canvasScale={canvasPosition.scale}
               key={cardData.id}
               onChangeCords={handleCordsChange}
               onDeleteCard={handleDeleteCard}

@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { ICoords, CanvasPosition } from '../../../types/types.ts';
+import { ICoords } from '../../../types/types.ts';
 import styles from './Card.module.css';
 import svg from '../../assets/delete.svg';
 import { throttle } from '../../../hooks/rafThrottle.ts';
@@ -9,14 +9,14 @@ export interface CardProps {
   id: string;
   coords: ICoords;
   text: string;
-  canvasCords: CanvasPosition;
+  canvasScale: number;
   onChangeCords: (changeCard: { id: string; coords: ICoords }) => void;
   onChangeText: (id: string, text: string) => void;
   onDeleteCard: (id: string) => void;
 }
 
 export const Card = memo((props: CardProps) => {
-  const { coords, text, canvasCords, id, onChangeCords, onChangeText, onDeleteCard } = props;
+  const { coords, text, canvasScale, id, onChangeCords, onChangeText, onDeleteCard } = props;
   const [grab, setGrab] = useState(false);
   const grabMode = grab ? 'grab' : '';
 
@@ -24,29 +24,32 @@ export const Card = memo((props: CardProps) => {
 
   const latestCoords = useLatest(coords);
   const latestLocalCoords = useLatest(localCoords);
+  const latestCanvasScale = useLatest(canvasScale);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
-
-  const offsetRef = useRef<ICoords | null>(null);
 
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-
+    let prevMousePosition: { x: number; y: number } | null = null;
     const mouseMove = throttle((event: MouseEvent) => {
-      if (event.button !== 0 || !offsetRef.current) return;
+      if (event.button !== 0 || !prevMousePosition) return;
 
-      const newCoords: ICoords = {
-        x: (event.clientX - offsetRef.current.x) / canvasCords.scale - canvasCords.x / canvasCords.scale,
-        y: (event.clientY - offsetRef.current.y) / canvasCords.scale - canvasCords.y / canvasCords.scale
+      const diffX = (event.clientX - prevMousePosition.x) / latestCanvasScale.current;
+      const diffY = (event.clientY - prevMousePosition.y) / latestCanvasScale.current;
+
+      prevMousePosition = {
+        x: event.clientX,
+        y: event.clientY
       };
-      setLocalCoords(newCoords);
+
+      setLocalCoords((prevCoords) => (prevCoords ? { x: prevCoords.x + diffX, y: prevCoords.y + diffY } : prevCoords));
     });
 
     const mouseUp = (event: MouseEvent) => {
       if (event.button !== 0) return;
       setGrab(false);
-      offsetRef.current = null;
+      prevMousePosition = null;
       setLocalCoords(null);
       onChangeCords({
         id,
@@ -66,9 +69,9 @@ export const Card = memo((props: CardProps) => {
       setGrab(true);
 
       setLocalCoords(latestCoords.current);
-      offsetRef.current = {
-        x: event.offsetX * canvasCords.scale,
-        y: event.offsetY * canvasCords.scale
+      prevMousePosition = {
+        x: event.clientX,
+        y: event.clientY
       };
 
       document.addEventListener('mousemove', mouseMove);
@@ -82,7 +85,7 @@ export const Card = memo((props: CardProps) => {
       document.removeEventListener('mousemove', mouseMove);
       document.removeEventListener('mouseup', mouseUp);
     };
-  }, [id, canvasCords, onChangeCords, latestLocalCoords, latestCoords]);
+  }, [id, latestCanvasScale, onChangeCords, latestLocalCoords, latestCoords]);
 
   const [canEdit, setCanEdit] = useState(true);
 
