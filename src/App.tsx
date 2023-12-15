@@ -4,7 +4,8 @@ import Button from './components/shared/Button/Button.tsx';
 import { Card } from './components/shared/Card/Card.tsx';
 import { v4 as uuidv4 } from 'uuid';
 import { CanvasPosition, ICoords } from './types/types.ts';
-import backgroundSrc from './components/assets/background.svg';
+import grid from './components/assets/grids.svg';
+import { throttle } from './hooks/rafThrottle.ts';
 
 const ZOOM_SENSITIVITY = 500;
 const MAX_ZOOM = 4;
@@ -19,7 +20,6 @@ interface Card {
 const App = () => {
   const [creatingCard, setCreatingCard] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
-  console.log(cards);
   const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
     x: 0,
     y: 0,
@@ -82,7 +82,7 @@ const App = () => {
 
     if (!background) return;
 
-    const mouseMove = (event: MouseEvent) => {
+    const mouseMove = throttle((event: MouseEvent) => {
       if (event.button !== 0) {
         return;
       }
@@ -99,13 +99,14 @@ const App = () => {
         };
       });
       prevCordsRef.current = newCords;
-    };
+    });
 
     const mouseUp = (event: MouseEvent) => {
       if (event.button !== 0) {
         return;
       }
       setGrab(false);
+      document.removeEventListener('mouseup', mouseUp);
       document.removeEventListener('mousemove', mouseMove);
     };
 
@@ -184,7 +185,7 @@ const App = () => {
             position: 'fixed',
             inset: inset,
             backgroundPosition: `${canvasPosition.x / canvasPosition.scale}px ${canvasPosition.y / canvasPosition.scale}px`,
-            backgroundImage: `url(${backgroundSrc})`,
+            backgroundImage: `url(${grid})`,
             zIndex: 0
           }}
         />
